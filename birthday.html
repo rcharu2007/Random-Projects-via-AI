@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Mobile-friendly viewport -->
+    <title>Birthday Wish Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 400px; /* Mobile-optimized width */
+            width: 100%;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        label, input, select, button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px; /* Prevents zoom on iOS */
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .hidden {
+            display: none;
+        }
+        .image-preview {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .image-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 5px;
+        }
+        #final-wish {
+            text-align: center;
+        }
+        #final-wish img {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+        }
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="welcome-step" class="container">
+        <h1>Welcome to Birthday Wish Generator</h1>
+        <p>Select a theme for the birthday wish:</p>
+        <select id="theme-select">
+            <option value="">Choose a theme...</option>
+            <option value="cats">Cats</option>
+            <option value="fairytale">Fairytale</option>
+            <option value="robotic">Robotic</option>
+            <option value="forest">Forest</option>
+            <option value="city">City</option>
+            <option value="minimalist">Minimalist</option>
+        </select>
+        <button id="next-to-questions">Next</button>
+    </div>
+
+    <div id="questions-step" class="container hidden">
+        <h2>Answer a Few Questions</h2>
+        <form id="questions-form">
+            <label>Your Name:</label>
+            <input type="text" name="name" required>
+            <label>Your Age:</label>
+            <input type="number" name="age" required min="1">
+            <label>Your Date of Birth (MM/DD/YYYY):</label>
+            <input type="text" name="dob" required placeholder="e.g., 01/15/1990">
+        </form>
+        <button id="next-to-photo">Next</button>
+    </div>
+
+    <div id="photo-step" class="container hidden">
+        <h2>Select a Photo</h2>
+        <p>We need permission to access your gallery. Click below to select a preferred photo:</p>
+        <input type="file" id="photo-upload" accept="image/*">
+        <div class="image-preview" id="image-preview"></div>
+        <button id="generate-wish">Generate Wish</button>
+    </div>
+
+    <div id="wish-step" class="container hidden">
+        <h2>Your Birthday Wish</h2>
+        <div id="final-wish"></div>
+        <button onclick="location.reload()">Start Over</button>
+    </div>
+
+    <script>
+        let selectedTheme = '';
+        let userData = {};
+        let selectedPhoto = '';
+
+        // Function to get ordinal suffix for age
+        function getOrdinal(n) {
+            const suffixes = ["th", "st", "nd", "rd"];
+            const v = n % 100;
+            return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
+        }
+
+        // Step 1: Theme selection
+        document.getElementById('next-to-questions').addEventListener('click', () => {
+            selectedTheme = document.getElementById('theme-select').value;
+            if (!selectedTheme) {
+                alert('Please select a theme.');
+                return;
+            }
+            document.getElementById('welcome-step').classList.add('hidden');
+            document.getElementById('questions-step').classList.remove('hidden');
+        });
+
+        // Step 2: Questions to photo
+        document.getElementById('next-to-photo').addEventListener('click', (e) => {
+            e.preventDefault();
+            const formData = new FormData(document.getElementById('questions-form'));
+            userData = {};
+            for (let [key, value] of formData.entries()) {
+                userData[key] = value;
+            }
+            if (!userData.name || !userData.age || !userData.dob) {
+                alert('Please fill in all fields.');
+                return;
+            }
+            document.getElementById('questions-step').classList.add('hidden');
+            document.getElementById('photo-step').classList.remove('hidden');
+        });
+
+        // Handle photo upload
+        document.getElementById('photo-upload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    selectedPhoto = event.target.result;
+                    const preview = document.getElementById('image-preview');
+                    preview.innerHTML = `<img src="${selectedPhoto}" alt="Selected Photo">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert('Please select a valid image.');
+            }
+        });
+
+        // Step 3: Generate and display wish
+        document.getElementById('generate-wish').addEventListener('click', () => {
+            if (!selectedPhoto) {
+                alert('Please select a photo.');
+                return;
+            }
+            document.getElementById('photo-step').classList.add('hidden');
+            document.getElementById('wish-step').classList.remove('hidden');
+            generateWish();
+        });
+
+        // Generate the birthday wish based on theme
+        function generateWish() {
+            const wishDiv = document.getElementById('final-wish');
+            wishDiv.innerHTML = '';
+
+            const name = userData.name;
+            const ageOrdinal = getOrdinal(parseInt(userData.age));
+            const baseMessage = `Happy ${ageOrdinal} birthday ${name}!`;
+
+            let themedMessage = '';
+            switch (selectedTheme) {
+                case 'cats':
+                    themedMessage = `${baseMessage} May your day be filled with purrs, whiskers, and endless cuddles from your feline friends. 🐱`;
+                    break;
+                case 'fairytale':
+                    themedMessage = `${baseMessage} Like a storybook hero, may your year be magical, full of wonder, and happily ever after. ✨`;
+                    break;
+                case 'robotic':
+                    themedMessage = `${baseMessage} Gear up for a year of innovation, circuits buzzing, and robotic adventures ahead! 🤖`;
+                    break;
+                case 'forest':
+                    themedMessage = `${baseMessage} Wander through the woods of life with fresh air, green leaves, and peaceful trails. 🌳`;
+                    break;
+                case 'city':
+                    themedMessage = `${baseMessage} Light up the city skyline with your energy, skyscrapers of dreams, and urban vibes! 🏙️`;
+                    break;
+                case 'minimalist':
+                    themedMessage = `${baseMessage} Embrace simplicity, clarity, and the beauty in life's essentials. Less is more! 📐`;
+                    break;
+                default:
+                    themedMessage = baseMessage;
+            }
+
+            wishDiv.innerHTML = `<p>${themedMessage}</p><img src="${selectedPhoto}" alt="Birthday Photo">`;
+        }
+    </script>
+</body>
+</html>
